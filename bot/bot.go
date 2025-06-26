@@ -18,7 +18,13 @@ const (
 
 func ExecuteCommand(command string) string {
 	fmt.Printf("executing: %v\n", command)
-	out, err := exec.Command("bash", "-c", command).Output()
+	var out []byte
+	var err error
+	if runtime.GOOS != "windows" {
+		out, err = exec.Command("bash", "-c", command).Output()
+	} else {
+		out, err = exec.Command(command).Output()
+	}
 	if err != nil {
 		fmt.Printf("result error: %v\n", err)
 		return "Error executing command on bot: " + err.Error()
