@@ -114,11 +114,13 @@ func (s *Server) SendCommand(botIndex int, command string) (string, error) {
 
 	_, err := bot.Connection.Write([]byte(command))
 	if err != nil {
+		s.Bots = append(s.Bots[:botIndex], s.Bots[botIndex+1:]...)
 		return "", err
 	}
 
 	data, err := bufio.NewReader(bot.Connection).ReadString('\n')
 	if err != nil {
+		s.Bots = append(s.Bots[:botIndex], s.Bots[botIndex+1:]...)
 		return "", err
 	}
 
