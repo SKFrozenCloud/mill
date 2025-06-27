@@ -8,11 +8,15 @@ import (
 	"strings"
 )
 
+var (
+	AESKey = "b660d6fef7c0248988b56695667e5714"
+)
+
 func main() {
 	fmt.Println("Welcome to Mill!")
 	server := Server{}
 
-	err := server.New("tcp", "localhost:4444")
+	err := server.New("tcp", "localhost:4444", AESKey)
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +46,7 @@ func main() {
 				continue
 			}
 
-			botCommand := strings.Join(cmdSplit[2:], " ") + "\n"
+			botCommand := strings.Join(cmdSplit[2:], " ")
 			result, err := server.SendCommand(botIndex, botCommand)
 			if err != nil {
 				fmt.Printf("Error executing command: %v\n", err)

